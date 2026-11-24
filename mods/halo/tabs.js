@@ -132,6 +132,8 @@ export function renderTabs(view, t) {
     .child(button(t, "new-term", "plus", "New terminal", () => run("tab.new", {})))
     .child(button(t, "new-agent", "square-pen", "New Claude", () => run("tab.new", { argv: ["claude"], name: "claude", focus: true })))
     .child(button(t, "new-task", "git-branch", `New task: worktree + Claude (${mod()}-shift-t)`, () => run("mod.open", { name: "halo-task" })))
+    .when(Boolean(shared("halo.hasOpenr")), (el) => el.child(button(t, "openr", "mods/halo/icons/openr.svg",
+      `Open a file or link from the focused pane (${mod()}-o)`, () => run("mod.open", { name: "openr" }))))
     .child(sep(t))
     .child(segment(t, [
       ["agent", "Agent", t[HUE.agent], p.panel, "Agent dock: context, activity, cache (follows the focused agent)", () => setPrefs({ panel: !p.panel })],

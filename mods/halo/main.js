@@ -25,8 +25,11 @@ export default class Halo extends View {
     // The waypoint button in the tree shows only when the (separate) waypoint mod is installed.
     if (this.role === "tree" && !checking()) {
       cx.spawn(async () => {
-        const has = Boolean(await readTextFile(`${appHome()}/mods/waypoint/mod.json`).catch(() => null));
-        if (shared("halo.hasWaypoint") !== has) setShared("halo.hasWaypoint", has);
+        // Optional companion mods: their buttons show only when they are installed.
+        for (const [mod, key] of [["waypoint", "halo.hasWaypoint"], ["openr", "halo.hasOpenr"]]) {
+          const has = Boolean(await readTextFile(`${appHome()}/mods/${mod}/mod.json`).catch(() => null));
+          if (shared(key) !== has) setShared(key, has);
+        }
       });
     }
     // Only the tab bar takes key commands and polls, so each runs once, not once per copy.

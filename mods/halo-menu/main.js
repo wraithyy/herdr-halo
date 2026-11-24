@@ -15,6 +15,8 @@ function agentItems(tg) {
   return [
     ["Show", "terminal", () => run("agent.focus", { terminal: a.address })],
     ["Peek", "search", () => run("terminal.peek", { terminal: a.address })],
+    // openr reads the focused terminal, so focus the agent first.
+    ...(shared("halo.hasOpenr") ? [["Open file or link…", "mods/halo/icons/openr.svg", () => { run("agent.focus", { terminal: a.address }); run("mod.open", { name: "openr" }); }]] : []),
     ...(a.status === "blocked" ? [["Reply…", "mods/halo/icons/ask.svg", () => run("mod.open", { name: "halo-reply" })]] : []),
     [a.pinned ? "Unpin" : "Pin to top", a.pinned ? "pin-off" : "pin", () => run("terminal.pin", { terminal: a.address, pinned: !a.pinned })],
     ...(inTab ? [["Rename", "square-pen", () => run("pane.rename", { pane: a.pane })]] : []),

@@ -5,7 +5,7 @@
 
 import { View, div, svg, image } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { panes, terminals, spaces, run, theme, props } from "herdr";
+import { panes, terminals, spaces, run, theme, props, shared } from "herdr";
 
 const MONO = "JetBrainsMono Nerd Font Mono";
 const BEAM = 160;
@@ -45,11 +45,20 @@ export default class HaloPane extends View {
     return div().id(id).p(3).rounded(4).text_color(t.dim)
       .hover((s) => s.bg(t.hover).text_color(t.foreground))
       .on_click((_e, cx) => { cx.stop_propagation(); run(command, args); })
-      .child(svg(`mods/pane/${icon}.svg`).size(13));
+      .child(svg(icon.startsWith("mods/") ? icon : `mods/pane/${icon}.svg`).size(13));
+  }
+
+  // openr reads the focused terminal, so focus this pane first.
+  openr(t, p) {
+    return div().id(`ph-o-${p.pane}`).p(3).rounded(4).text_color(t.dim)
+      .hover((s) => s.bg(t.hover).text_color(t.foreground)).tooltip("Open a file or link from this pane (openr)")
+      .on_click((_e, cx) => { cx.stop_propagation(); run("pane.focus", { pane: p.pane }); run("mod.open", { name: "openr" }); })
+      .child(svg("mods/halo/icons/openr.svg").size(13));
   }
 
   buttons(t, p) {
     return [
+      ...(shared("halo.hasOpenr") ? [this.openr(t, p)] : []),
       this.button(t, `ph-r-${p.pane}`, "split-right", "pane.split", { direction: "right", pane: p.pane }),
       this.button(t, `ph-d-${p.pane}`, "split-down", "pane.split", { direction: "down", pane: p.pane }),
       this.button(t, `ph-z-${p.pane}`, p.zoomed ? "unzoom" : "zoom", "pane.zoom", { pane: p.pane }),

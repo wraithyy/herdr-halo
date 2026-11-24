@@ -34,7 +34,7 @@ function menuItemCount(kind, target) {
   if (kind === "agent") {
     const a = agents().find((x) => x.address === target.terminal);
     if (!a) return 1;
-    return 4 + (a.status === "blocked") + panes().some((p) => p.pane === a.pane) + (a.status === "working");
+    return 4 + Boolean(shared("halo.hasOpenr")) + (a.status === "blocked") + panes().some((p) => p.pane === a.pane) + (a.status === "working");
   }
   if (kind === "port") return 3 + Boolean(target.terminal);
   if (kind === "collie") return 4;
