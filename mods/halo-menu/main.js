@@ -2,9 +2,16 @@
 // Items run Herdr commands or a small exec; keyboard: up/down, enter, esc.
 
 import { View, div, svg } from "gpui-kit";
-import { v_flex, h_flex } from "gpui-base";
+import { v_flex, h_flex, InputState, Input } from "gpui-base";
 import { run, exec, hc, theme, props, closeOverlay, agents, panes, shared, setShared } from "herdr";
 import { copy, openUrl, stopListener, stopHint, isWindows } from "./os.js";
+
+// The accent from halo's picker (a hover preview first, then the kept one) over the
+// layout's. Mods can't share imports across folders, so each halo mod has this copy.
+const withAccent = (t) => {
+  const a = shared("halo.accentPreview") || shared("halo.prefs")?.accent;
+  return /^#[0-9a-f]{6}$/i.test(a ?? "") ? { ...t, accent: a, selected: `${a}1c` } : t;
+};
 
 const ICON = (name) => (name.startsWith("mods/") ? name : `mods/workspace-chrome/${name}.svg`);
 
@@ -67,9 +74,28 @@ function projectItems(tg) {
 
 export const ITEMS = { agent: agentItems, port: portItems, mr: mrItems, collie: collieItems, project: projectItems };
 
+// Accent picker: hovering a swatch previews it everywhere halo draws (halo.accentPreview),
+// a click or a valid hex + enter keeps it (halo.prefs.accent), esc or closing drops the preview.
+export const SWATCHES = ["#00e8c6", "#89dceb", "#74c7ec", "#89b4fa", "#b4befe", "#cba6f7", "#f5c2e7", "#f38ba8", "#fab387", "#f9e2af", "#a6e3a1", "#cdd6f4"];
+const HEX = /^#[0-9a-f]{6}$/i;
+const preview = (hex) => setShared("halo.accentPreview", hex);
+function keepAccent(hex) {
+  setShared("halo.prefs", { ...(shared("halo.prefs") ?? {}), accent: hex });
+  preview(null);
+}
+
 export default class HaloMenu extends View {
   init(_props, cx) {
     this.at = 0;
+    if (props()?.kind === "accent") {
+      this.hex = InputState.new({ placeholder: "#00e8c6" });
+      this.hex.on("submit", () => {
+        let v = this.hex.value().trim();
+        if (!v.startsWith("#")) v = `#${v}`;
+        if (HEX.test(v)) { keepAccent(v.toLowerCase()); closeOverlay(props().overlay); }
+      });
+      cx.timer.after(50, () => this.hex.focus());
+    }
     this.handle = cx.focus_handle();
     this.handle.focus();
   }
@@ -85,8 +111,33 @@ export default class HaloMenu extends View {
     item[2]();
   }
 
+  close() {
+    if (props()?.kind === "accent") preview(null);
+  }
+
+  renderAccent(t) {
+    const current = (shared("halo.prefs") ?? {}).accent ?? null;
+    const swatch = (hex) => div().id(`sw-${hex}`).size(26).rounded(13).cursor_pointer().bg(hex)
+      .border(2).border_color(hex === (current ?? SWATCHES[0]) ? t.foreground : "#00000000")
+      .on_hover((on) => preview(on ? hex : null))
+      .on_click(() => { keepAccent(hex); closeOverlay(props().overlay); });
+    return v_flex().id("halo-menu").track_focus(this.handle).w_full().p(10).gap(10).bg(t.popover)
+      .on_key_down((e) => { if (e.key === "escape") { preview(null); closeOverlay(props().overlay); } })
+      .child(h_flex().items_center()
+        .child(div().flex_1().text_size(12.5).text_color(t.foreground).child("Accent color"))
+        .when(Boolean(current), (el) => el.child(div().id("accent-reset").text_size(11).text_color(t.dim).cursor_pointer()
+          .hover((s) => s.text_color(t.foreground)).tooltip("Back to the layout's accent")
+          .on_click(() => { setShared("halo.prefs", { ...(shared("halo.prefs") ?? {}), accent: null }); preview(null); closeOverlay(props().overlay); })
+          .child("reset"))))
+      .child(h_flex().flex_wrap().gap(8).children(SWATCHES.map(swatch)))
+      .child(h_flex().h(28).px(8).gap(6).items_center().rounded(6).border(1).border_color(t.border)
+        .child(div().text_size(11).text_color(t.dim).child("hex"))
+        .child(Input.new(this.hex).flex_1().h_full().text_size(12.5).text_color(t.foreground)));
+  }
+
   render() {
-    const t = theme();
+    const t = withAccent(theme());
+    if (props()?.kind === "accent") return this.renderAccent(t);
     const items = this.items();
     return v_flex().id("halo-menu").track_focus(this.handle).w_full().p(5).gap(1).bg(t.popover)
       .on_key_down((e, cx) => {

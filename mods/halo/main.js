@@ -12,6 +12,13 @@ import { pollServers, POLL_MS } from "./servers.js";
 import { pollGit, GIT_POLL_MS } from "./git.js";
 import { pollCollie, COLLIE_POLL_MS } from "./collie.js";
 
+// The accent from halo's picker (a hover preview first, then the kept one) over the
+// layout's. Mods can't share imports across folders, so each halo mod has this copy.
+const withAccent = (t) => {
+  const a = shared("halo.accentPreview") || shared("halo.prefs")?.accent;
+  return /^#[0-9a-f]{6}$/i.test(a ?? "") ? { ...t, accent: a, selected: `${a}1c` } : t;
+};
+
 const COMMANDS = {
   "toggle-panel": () => setPrefs({ panel: !prefs().panel }),
   "toggle-agents": () => setPrefs({ agents: !prefs().agents }),
@@ -58,7 +65,7 @@ export default class Halo extends View {
   }
 
   render(cx) {
-    const t = theme();
+    const t = withAccent(theme());
     if (this.role === "brand") return renderBrand(t);
     if (this.role === "tabs") return renderTabs(this, t);
     if (this.role === "dock") return renderDock(this, t, cx, "agent");

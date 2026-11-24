@@ -7,6 +7,13 @@ import { View, div, svg, image } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { panes, terminals, spaces, run, theme, props, shared } from "herdr";
 
+// The accent from halo's picker (a hover preview first, then the kept one) over the
+// layout's. Mods can't share imports across folders, so each halo mod has this copy.
+const withAccent = (t) => {
+  const a = shared("halo.accentPreview") || shared("halo.prefs")?.accent;
+  return /^#[0-9a-f]{6}$/i.test(a ?? "") ? { ...t, accent: a, selected: `${a}1c` } : t;
+};
+
 const MONO = "JetBrainsMono Nerd Font Mono";
 const BEAM = 160;
 const BEAM_ALPHA = ["03", "06", "0b", "11", "18", "1e", "18", "11", "0b", "06", "03"];
@@ -82,7 +89,7 @@ export default class HaloPane extends View {
   }
 
   render() {
-    const t = theme();
+    const t = withAccent(theme());
     const p = this.me();
     if (!p) return div();
     const term = p.terminal ? terminals().find((x) => x.address === p.terminal) : null;

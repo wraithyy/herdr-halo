@@ -39,11 +39,13 @@ function menuItemCount(kind, target) {
   if (kind === "port") return 3 + Boolean(target.terminal);
   if (kind === "collie") return 4;
   if (kind === "project") return 1;
+  if (kind === "accent") return 4;
   return 3;
 }
 
 export function openMenu(kind, target) {
-  openOverlay({ mod: "halo-menu", kind: "popup", width: 230, height: menuItemCount(kind, target) * 29 + 12, props: { kind, target } });
+  const height = kind === "accent" ? 176 : menuItemCount(kind, target) * 29 + 12;
+  openOverlay({ mod: "halo-menu", kind: "popup", width: 236, height, props: { kind, target } });
 }
 
 const chevron = (t, isFolded, size = 10) =>

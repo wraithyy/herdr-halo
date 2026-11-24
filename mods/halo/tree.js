@@ -174,6 +174,11 @@ export function renderTree(t) {
 export function renderBrand(t) {
   // Leaves the left 76px to the macOS traffic lights; elsewhere the tab bar draws the window buttons.
   return h_flex().size_full().pl(window()?.platform === "macos" ? 84 : 18).pr(12).gap(8).items_center()
-    .child(div().size(7).rounded(4).bg(t.accent).loop("opacity", { from: 0.35, to: 1, period: 2400 }))
-    .child(div().font_family(MONO).text_size(11).font_semibold().text_color(t.foreground).child("HALO"));
+    // The brand is a window-drag area: the picker button stops the press so it stays a click.
+    .child(h_flex().id("accent-pick").h(24).px(6).gap(8).items_center().rounded(6).cursor_pointer()
+      .hover((s) => s.bg(t.hover)).tooltip("Accent color")
+      .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
+      .on_click(() => openMenu("accent", {}))
+      .child(div().size(9).rounded(5).bg(t.accent).loop("opacity", { from: 0.45, to: 1, period: 2400 }))
+      .child(div().font_family(MONO).text_size(11).font_semibold().text_color(t.foreground).child("HALO")));
 }

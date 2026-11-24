@@ -5,8 +5,15 @@
 
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
-import { exec, readTextFile, run, theme, props, closeOverlay, appHome, home, settings, window } from "herdr";
+import { exec, readTextFile, run, theme, props, closeOverlay, appHome, home, settings, window, shared } from "herdr";
 import { merge, parseWaypoints, typedPath, score } from "./rank.js";
+
+// The accent from halo's picker (a hover preview first, then the kept one) over the
+// layout's. Mods can't share imports across folders, so each halo mod has this copy.
+const withAccent = (t) => {
+  const a = shared("halo.accentPreview") || shared("halo.prefs")?.accent;
+  return /^#[0-9a-f]{6}$/i.test(a ?? "") ? { ...t, accent: a, selected: `${a}1c` } : t;
+};
 
 const MONO = "JetBrainsMono Nerd Font Mono";
 const SHOWN = 12;
@@ -78,7 +85,7 @@ export default class HaloSpace extends View {
   }
 
   render() {
-    const t = theme();
+    const t = withAccent(theme());
     const rows = this.rows();
     const start = Math.max(0, Math.min(this.at - SHOWN + 1, rows.length - SHOWN));
     const shown = rows.slice(start, start + SHOWN);

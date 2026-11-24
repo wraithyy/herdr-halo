@@ -4,8 +4,15 @@
 
 import { View, div } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
-import { exec, run, theme, props, closeOverlay, focused, spaces, settings, home } from "herdr";
+import { exec, run, theme, props, closeOverlay, focused, spaces, settings, home, shared } from "herdr";
 import { slugify, expandHome } from "./slug.js";
+
+// The accent from halo's picker (a hover preview first, then the kept one) over the
+// layout's. Mods can't share imports across folders, so each halo mod has this copy.
+const withAccent = (t) => {
+  const a = shared("halo.accentPreview") || shared("halo.prefs")?.accent;
+  return /^#[0-9a-f]{6}$/i.test(a ?? "") ? { ...t, accent: a, selected: `${a}1c` } : t;
+};
 
 const MONO = "JetBrainsMono Nerd Font Mono";
 
@@ -64,7 +71,7 @@ export default class HaloTask extends View {
   }
 
   render() {
-    const t = theme();
+    const t = withAccent(theme());
     const slug = slugify(this.name.value());
     const field = (state, active) => h_flex().h(38).flex_none().px(10).items_center().rounded(8).border(1)
       .border_color(active ? t.accent : t.border).bg(t.background)
