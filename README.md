@@ -32,8 +32,12 @@ full tour.
    ```
 
    Never overwrite an existing layout or mod with the same name: rename instead.
-   Herdr watches `~/.config/herdr-app`, not the symlink targets: after editing the layout in
-   the clone, run `touch -h ~/.config/herdr-app/layouts/halo.json` to reload it.
+   Herdr watches `~/.config/herdr-app`, not the symlink targets: after editing a file in the
+   clone, touch the link so Herdr reloads it (a pull counts too):
+
+   ```sh
+   touch -h ~/.config/herdr-app/layouts/halo.json ~/.config/herdr-app/mods/halo*
+   ```
 
 2. Keys: merge the `layout:halo` section of [keys.json](keys.json) into
    `~/.config/herdr-app/keys.json`.

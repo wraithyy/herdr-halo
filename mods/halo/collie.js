@@ -9,13 +9,17 @@ import { MONO, openMenu, dur } from "./lib.js";
 export const COLLIE_POLL_MS = 20000;
 const TIMEOUT = { timeout: 5000 };
 
-// Herdr may start without the login shell's PATH, where ~/.local/bin lives.
+// Herdr may start without the login shell's PATH, where ~/.local/bin lives. The binary
+// that answered is kept, so the menu runs the same one.
+let bin = null;
 async function collie(args) {
-  const r = await exec("collie", args, TIMEOUT).catch(() => null);
-  if (r && r.code === 0) return r.stdout;
-  const home = appHome().replace(/\/\.config\/herdr-app\/?$/, "");
-  const again = await exec(`${home}/.local/bin/collie`, args, TIMEOUT).catch(() => null);
-  return again && again.code === 0 ? again.stdout : null;
+  const home = appHome().replace(/[\\/]\.config[\\/]herdr-app[\\/]?$/, "");
+  for (const candidate of bin ? [bin] : ["collie", `${home}/.local/bin/collie`]) {
+    const r = await exec(candidate, args, TIMEOUT).catch(() => null);
+    if (r && r.code === 0) { bin = candidate; return r.stdout; }
+  }
+  bin = null;
+  return null;
 }
 
 // "Phone  created <iso>  last seen <iso>  no expiry" per paired device.
@@ -38,6 +42,7 @@ export async function pollCollie() {
     try { s = raw ? JSON.parse(raw) : null; } catch { s = null; }
     const next = s?.running
       ? {
+        bin,
         version: String(s.version ?? "").split("+")[0],
         crew: s.crew ?? "",
         devices: s.pairedDevices ?? 0,

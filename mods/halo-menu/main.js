@@ -4,7 +4,7 @@
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
 import { run, exec, hc, theme, props, closeOverlay, agents, panes, shared, setShared } from "herdr";
-import { copy, openUrl, stopListener, stopHint } from "./os.js";
+import { copy, openUrl, stopListener, stopHint, isWindows } from "./os.js";
 
 const ICON = (name) => (name.startsWith("mods/") ? name : `mods/workspace-chrome/${name}.svg`);
 
@@ -49,8 +49,11 @@ function collieItems(tg) {
   return [
     [`Collie ${tg.version}${tg.crew ? ` · ${tg.crew}` : ""}`, "mods/halo/icons/phone.svg", null, "info"],
     [`${tg.devices} paired · ${sessions}`, "layers", null, "info"],
-    ["Pair a new device", "plus", () => run("pane.split", { direction: "down", argv: ["zsh", "-lic", "collie pair; echo; read -sk '?Press any key to close'"] })],
-    ["Restart bridge", "mods/halo/icons/restart.svg", () => exec("zsh", ["-lc", "collie restart"]).catch(() => null)],
+    // The pairing code and QR must stay on screen after `collie pair` exits.
+    ["Pair a new device", "plus", () => run("pane.split", { direction: "down", argv: isWindows()
+      ? ["powershell", "-NoLogo", "-NoExit", "-Command", `& '${(tg.bin ?? "collie").replace(/'/g, "''")}' pair`]
+      : ["sh", "-c", '"$0" pair; printf "\\nPress enter to close"; read _', tg.bin ?? "collie"] })],
+    ["Restart bridge", "mods/halo/icons/restart.svg", () => exec(tg.bin ?? "collie", ["restart"]).catch(() => null)],
   ];
 }
 

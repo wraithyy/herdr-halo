@@ -124,7 +124,7 @@ blur on, own title bar with macOS traffic lights at 18,16.
 - `glab`'s default host may not be the logged-in one; it is read from `glab auth status`.
 - `keys.json`: keep alt-arrows out of the `terminal` section. It outranks `layout:*`.
 - A symlinked `themes/*.json` is not picked up, which is why the palette lives in the
-  layout. Herdr also doesn't watch symlink targets: `touch -h` the layout link after edits.
+  layout. Herdr also doesn't watch symlink targets: `touch -h` the layout and mod links after edits.
 - The goal / doing / waiting / next summary needs the where-am-i Claude Code mod (optional).
   Without it BRIEF falls back to the session name and the agent's message (marked AUTO).
 
