@@ -3,7 +3,7 @@
 
 import { div, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { spaces, agents, terminals, run, setAgentOrder, openOverlay, shared } from "herdr";
+import { spaces, agents, terminals, run, setAgentOrder, openOverlay, shared, window } from "herdr";
 import { treeServersRow } from "./servers.js";
 import { treeGitRow } from "./git.js";
 import { openMenu } from "./lib.js";
@@ -172,8 +172,8 @@ export function renderTree(t) {
 }
 
 export function renderBrand(t) {
-  // Leaves the left 76px to the macOS traffic lights.
-  return h_flex().size_full().pl(84).pr(12).gap(8).items_center()
+  // Leaves the left 76px to the macOS traffic lights; elsewhere the tab bar draws the window buttons.
+  return h_flex().size_full().pl(window()?.platform === "macos" ? 84 : 18).pr(12).gap(8).items_center()
     .child(div().size(7).rounded(4).bg(t.accent).loop("opacity", { from: 0.35, to: 1, period: 2400 }))
     .child(div().font_family(MONO).text_size(11).font_semibold().text_color(t.foreground).child("HALO"));
 }

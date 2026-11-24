@@ -1,12 +1,13 @@
 // DEV: listening TCP ports mapped to the space whose terminal started them. The tab bar
-// copy polls (lsof + ps every 10 s) and publishes shared("halo.servers"); the tree shows a
+// copy polls (lsof + ps, PowerShell on Windows, every 10 s) and publishes shared("halo.servers"); the tree shows a
 // port line per space and the dock lists the shown space's servers and foreign listeners.
 
 import { div, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { exec, terminals, shared, setShared, spaces } from "herdr";
+import { terminals, shared, setShared, spaces } from "herdr";
 import { MONO, openMenu } from "./lib.js";
 import { parseListeners, parseParents, attribute } from "./parse.js";
+import { listenerSnapshot, openUrl as openLink, stopListener, stopHint } from "./os.js";
 
 export const POLL_MS = 10000;
 
@@ -31,12 +32,9 @@ export async function pollServers() {
 }
 
 async function pollServersOnce() {
-  const [lsof, ps] = await Promise.all([
-    exec("lsof", ["-nP", "-iTCP", "-sTCP:LISTEN", "-Fpcn"], { timeout: 5000 }).catch(() => null),
-    exec("ps", ["-Ao", "pid=,ppid="], { timeout: 5000 }).catch(() => null),
-  ]);
-  if (!lsof || !ps) return;
-  const next = attribute(parseListeners(lsof.stdout), parseParents(ps.stdout), owners());
+  const snap = await listenerSnapshot();
+  if (!snap) return;
+  const next = attribute(parseListeners(snap.listeners), parseParents(snap.parents), owners());
   // Every setShared re-renders all copies; publish only real changes.
   if (JSON.stringify(next) !== JSON.stringify(shared("halo.servers") ?? null)) setShared("halo.servers", next);
 }
@@ -45,16 +43,7 @@ export function serversOf(spaceId) {
   return shared("halo.servers")?.bySpace?.[spaceId] ?? [];
 }
 
-const openUrl = (port) => exec("open", [`http://localhost:${port}`]).catch(() => null);
-// The pid comes from a snapshot up to POLL_MS old: kill only if it is still the same program.
-export async function stopListener(l) {
-  const r = await exec("ps", ["-p", String(l.pid), "-o", "comm="]).catch(() => null);
-  // lsof truncates names to 9 chars and case can differ from ps (python3.1 vs Python3.14).
-  const comm = (r?.stdout.trim().split("/").pop() ?? "").toLowerCase();
-  const cmd = String(l.cmd).toLowerCase();
-  if (!comm || !(comm.startsWith(cmd) || cmd.startsWith(comm))) return;
-  await exec("kill", [String(l.pid)]).catch(() => null);
-}
+const openUrl = (port) => openLink(`http://localhost:${port}`);
 const stop = (l) => stopListener(l);
 
 // One line in a space card of the tree.
@@ -82,7 +71,7 @@ function serverRow(t, l, { canStop }) {
     .child(div().flex_1().min_w(0).truncate().text_size(12).text_color(t.foreground).child(l.cmd))
     .child(div().font_family(MONO).text_size(9.5).text_color(t.dim).child(l.terminal ?? `pid ${l.pid}`))
     .child(iconButton(t, `open-${l.pid}-${l.port}`, "mods/halo/icons/next.svg", `Open http://localhost:${l.port}`, t.accent, () => openUrl(l.port)))
-    .when(canStop, (el) => el.child(iconButton(t, `stop-${l.pid}-${l.port}`, "mods/workspace-chrome/x.svg", `Stop ${l.cmd} (SIGTERM pid ${l.pid})`, t.blocked, () => stop(l))));
+    .when(canStop, (el) => el.child(iconButton(t, `stop-${l.pid}-${l.port}`, "mods/workspace-chrome/x.svg", `Stop ${l.cmd} (${stopHint()} pid ${l.pid})`, t.blocked, () => stop(l))));
 }
 
 // DEV › SERVERS for the shown space.

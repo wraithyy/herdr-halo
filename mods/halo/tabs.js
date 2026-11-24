@@ -75,6 +75,8 @@ function segment(t, items) {
       .child(div().size(5).rounded(3).bg(on ? hue : t.border))
       .child(div().text_size(11.5).text_color(on ? t.foreground : t.dim).child(text))));
 }
+// Shortcut modifier shown in tooltips (keys.json binds cmd on macOS, ctrl elsewhere).
+const mod = () => (window()?.platform === "macos" ? "cmd" : "ctrl");
 const sep = (t) => div().w(1).h(14).bg(t.border).mx(2);
 
 // Compared against the live layout, not a remembered state: a layout reload resets
@@ -116,10 +118,11 @@ export function renderTabs(view, t) {
   const sideChild = findNode(root, "side-body")?.active;
 
   const waiting = agents().filter((a) => a.status === "blocked").length;
+  const w = window();
   return h_flex().size_full().px(10).pl(padLeft).gap(6).items_center()
     .when(waiting > 0, (el) => el.child(div().id("waiting-chip").h(22).px(8).rounded(5).flex().items_center().cursor_pointer()
       .bg(`${t.blocked}26`).border(1).border_color(t.blocked).font_family(MONO).text_size(10).text_color(t.blocked)
-      .tooltip("Reply to waiting agents (cmd-shift-j)")
+      .tooltip(`Reply to waiting agents (${mod()}-shift-j)`)
       .on_mouse_down("left", stop).on_click(() => run("mod.open", { name: "halo-reply" }))
       .child(`${waiting} waiting`)))
     .child(div().text_size(12).font_semibold().text_color(t.foreground).flex_none().child(space?.name ?? "—"))
@@ -128,7 +131,7 @@ export function renderTabs(view, t) {
       .children(tabs.map((tab) => pill(t, tab, all, isAgent(tab), space?.id))))
     .child(button(t, "new-term", "plus", "New terminal", () => run("tab.new", {})))
     .child(button(t, "new-agent", "square-pen", "New Claude", () => run("tab.new", { argv: ["claude"], name: "claude", focus: true })))
-    .child(button(t, "new-task", "git-branch", "New task: worktree + Claude (cmd-shift-t)", () => run("mod.open", { name: "halo-task" })))
+    .child(button(t, "new-task", "git-branch", `New task: worktree + Claude (${mod()}-shift-t)`, () => run("mod.open", { name: "halo-task" })))
     .child(sep(t))
     .child(segment(t, [
       ["agent", "Agent", t[HUE.agent], p.panel, "Agent dock: context, activity, cache (follows the focused agent)", () => setPrefs({ panel: !p.panel })],
@@ -140,5 +143,10 @@ export function renderTabs(view, t) {
     .child(sep(t))
     .child(button(t, "agents-toggle", "layers", p.agents ? "Hide agent tabs" : "Show agent tabs",
       () => setPrefs({ agents: !p.agents }), p.agents))
-    .child(button(t, "sidebar-toggle", "panel-left", "Toggle sidebar", () => run("layout.toggle", { id: "sidebar" }), !sidebarHidden));
+    .child(button(t, "sidebar-toggle", "panel-left", "Toggle sidebar", () => run("layout.toggle", { id: "sidebar" }), !sidebarHidden))
+    // The layout hides the system title bar; where the system draws no buttons (Windows, Linux), draw them.
+    .when(Boolean(w?.buttons), (el) => el.child(sep(t))
+      .child(button(t, "win-min", "mods/tabs/win-min.svg", "Minimize", () => run("window.minimize")))
+      .child(button(t, "win-max", `mods/tabs/${w.maximized ? "win-restore" : "win-max"}.svg`, w.maximized ? "Restore" : "Maximize", () => run("window.maximize")))
+      .child(button(t, "win-close", "mods/tabs/win-close.svg", "Close", () => run("window.close"))));
 }

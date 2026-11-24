@@ -79,6 +79,23 @@ def main():
                                                      "current_usage": {"input_tokens": 2, "cache_read_input_tokens": 100}},
                                   "prompt_cache": {"expires_at": 123, "ttl": "1h"}, "rate_limits": {"five_hour": {}}})
     assert status["used"] == 102 and status["exp"] == 123 and status["ctx"] == 12
+
+    # run_hook end to end under its file lock (flock, or msvcrt on Windows): state persists between runs.
+    with tempfile.TemporaryDirectory() as tmp:
+        transcript = os.path.join(tmp, "t.jsonl")
+        with open(transcript, "w") as f:
+            f.write("".join(json.dumps(rec) + "\n" for rec in RECORDS[:4]))
+        sent = []
+        report.STATE_DIR, report.publish = os.path.join(tmp, "state"), lambda _t, labels: sent.append(labels) or True
+        payload = {"session_id": "s1", "transcript_path": transcript, "hook_event_name": "PostToolUse"}
+        report.run_hook("t1", payload)
+        with open(transcript, "a") as f:
+            f.write(json.dumps(RECORDS[4]) + "\n")
+        report.run_hook("t1", payload)
+        with open(os.path.join(tmp, "state", "s1.json")) as f:
+            saved = json.load(f)
+        assert saved["offset"] == os.path.getsize(transcript), saved["offset"]
+        assert [a["k"] for a in sent[-1]["halo.activity"]].count("read") == 1, sent[-1]["halo.activity"]
     print("ok")
 
 

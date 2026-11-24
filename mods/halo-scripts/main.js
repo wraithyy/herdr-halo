@@ -4,18 +4,25 @@
 
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
 import { View, div } from "gpui-kit";
-import { exec, readTextFile, run, props, closeOverlay, focused, spaces, theme } from "herdr";
+import { exec, readTextFile, run, props, closeOverlay, focused, spaces, theme, window } from "herdr";
 import { parseMakefile, parseJustfile, fuzzy } from "./parse.js";
 
 const MONO = "JetBrainsMono Nerd Font Mono";
 
 const LOCKS = [["pnpm-lock.yaml", "pnpm"], ["bun.lockb", "bun"], ["bun.lock", "bun"], ["yarn.lock", "yarn"], ["package-lock.json", "npm"]];
 const SHOWN = 12;
+const isWindows = () => window()?.platform === "windows";
 
+// Names in a folder, hidden ones included.
+async function list(folder) {
+  const r = await (isWindows()
+    ? exec("powershell", ["-NoProfile", "-NonInteractive", "-Command", "Get-ChildItem -Force -Name"], { cwd: folder })
+    : exec("ls", ["-1A", folder])).catch(() => null);
+  return new Set((r?.stdout ?? "").replace(/\r/g, "").split("\n"));
+}
 
 async function collect(folder) {
-  const ls = await exec("ls", ["-1A", folder]).catch(() => ({ stdout: "" }));
-  const files = new Set(ls.stdout.split("\n"));
+  const files = await list(folder);
   const items = [];
   if (files.has("package.json")) {
     const pm = LOCKS.find(([lock]) => files.has(lock))?.[1] ?? "npm";
@@ -67,6 +74,13 @@ export class ScriptsState {
     // A login shell runs the script and stays, so the output survives the script ending.
     // Folder and command go in as positional arguments, never spliced into the script:
     // a package.json script name is arbitrary text.
+    // Windows: PowerShell runs it and stays (-NoExit). Each word is a single-quoted literal,
+    // where only quotes (curly ones too) need doubling.
+    if (isWindows()) {
+      const literal = (s) => `'${String(s).replace(/['‘’‚‛]/g, "$&$&")}'`;
+      return run("terminal.open", { place: "down", folder: this.folder,
+        argv: ["powershell", "-NoLogo", "-NoExit", "-Command", `& ${item.argv.map(literal).join(" ")}`] });
+    }
     run("pane.split", { direction: "down", argv: ["/bin/zsh", "-lc", 'cd "$1" && shift && "$@"; exec /bin/zsh -l', "zsh", this.folder, ...item.argv] });
   }
 }

@@ -15,6 +15,9 @@ test("typed paths and fuzzy", () => {
   expect(typedPath("~/Development", "/h")).toBe("/h/Development");
   expect(typedPath("/tmp", "/h")).toBe("/tmp");
   expect(typedPath("halo", "/h")).toBe(null);
+  expect(typedPath("C:\\Users\\me\\repo", "C:/Users/me")).toBe("C:/Users/me/repo");
+  expect(typedPath("d:/work", "C:/Users/me")).toBe("d:/work");
+  expect(typedPath("~/x", "C:/Users/me")).toBe("C:/Users/me/x");
   expect(fuzzy("~/Development/acme/storefront", "acstf")).toBe(true);
 });
 

@@ -34,10 +34,12 @@ export function parseWaypoints(text) {
   return (text ?? "").split("\n").map((l) => l.split("\t")).filter(([n, p]) => n && p).map(([name, path]) => ({ name, path }));
 }
 
-// A typed path ("~/x" or "/x") is offered as-is so any folder works without the list.
+// A typed path ("~/x", "/x" or "C:\x") is offered as-is so any folder works without the list.
 export function typedPath(query, home) {
   const q = query.trim();
   if (q.startsWith("~/") || q === "~") return `${home}${q.slice(1)}`;
+  // Absolute: "/x", or a Windows drive ("C:\x", "C:/x"), kept with forward slashes.
+  if (/^[a-zA-Z]:[\\/]/.test(q)) return q.replace(/\\/g, "/");
   return q.startsWith("/") ? q : null;
 }
 

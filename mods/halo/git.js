@@ -8,6 +8,7 @@ import { v_flex, h_flex } from "gpui-base";
 import { exec, run, spaces, panes, shared, setShared, notify } from "herdr";
 import { MONO, openMenu, prefs, setPrefs, folded, toggleFold } from "./lib.js";
 import { parseRemote, providerOf, pipelineFinished, rollupStatus, loggedInHosts, groupByProject } from "./parse.js";
+import { openUrl } from "./os.js";
 
 export const GIT_POLL_MS = 60000;
 const TIMEOUT = { timeout: 8000 };
@@ -180,7 +181,6 @@ async function pollGitOnce() {
 }
 
 const PIPE_COLOR = (t, s) => ({ success: t.done, failed: t.blocked, canceled: t.dim, skipped: t.dim, manual: t.ansi3 }[s] ?? t.working);
-const openUrl = (url) => exec("open", [url]).catch(() => null);
 
 export function gitOf(spaceId) {
   return shared("halo.git")?.bySpace?.[spaceId] ?? null;

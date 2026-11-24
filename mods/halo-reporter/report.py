@@ -10,14 +10,20 @@ halo.context / halo.activity / halo.cache; the statusline writes halo.status.
 Stdlib only: it runs on every tool call.
 """
 
-import fcntl
 import json
 import os
 import shutil
 import subprocess
 import sys
 import time
+from contextlib import contextmanager
 from datetime import datetime
+
+try:
+    import fcntl
+except ImportError:  # Windows
+    fcntl = None
+    import msvcrt
 
 CHARS_PER_TOKEN = 3.5
 ACTIVITY_MAX = 40
@@ -303,9 +309,13 @@ def cache_label(state):
             "ttl": last.get("ttl"), "last_at": last.get("at")}
 
 
+HC_PATHS = ("/opt/homebrew/bin/hc", os.path.expanduser("~/.local/bin/hc"),
+            # Windows: the herdr-core installer doesn't put hc on PATH.
+            os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", "herdr-core", "hc.exe"))
+
+
 def hc_binary():
-    return shutil.which("hc") or next((p for p in ("/opt/homebrew/bin/hc", os.path.expanduser("~/.local/bin/hc"))
-                                       if os.path.exists(p)), None)
+    return shutil.which("hc") or next((p for p in HC_PATHS if os.path.exists(p)), None)
 
 
 def publish(terminal, labels):
@@ -321,6 +331,24 @@ def publish(terminal, labels):
     return done.returncode == 0
 
 
+@contextmanager
+def locked(f):
+    """Exclusive lock on an open file for the block."""
+    if fcntl:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        yield
+        return
+    # Windows: lock byte 0 (past EOF is allowed). LK_LOCK retries for about 10 s, then raises,
+    # which main() reports; release explicitly, as closing doesn't promise to.
+    f.seek(0)
+    msvcrt.locking(f.fileno(), msvcrt.LK_LOCK, 1)
+    try:
+        yield
+    finally:
+        f.seek(0)
+        msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+
+
 def run_hook(terminal, payload):
     session = payload.get("session_id")
     transcript = payload.get("transcript_path")
@@ -329,8 +357,7 @@ def run_hook(terminal, payload):
     os.makedirs(STATE_DIR, exist_ok=True)
     path = os.path.join(STATE_DIR, f"{os.path.basename(session)}.json")
     # Async hooks overlap (PostToolUse per tool); the lock keeps offset and accumulators consistent.
-    with open(path, "a+") as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
+    with open(path, "a+") as f, locked(f):
         f.seek(0)
         try:
             state = json.loads(f.read() or "{}")
@@ -374,7 +401,7 @@ def status_label(data):
 
 def run_statusline(terminal, file):
     try:
-        with open(file) as f:
+        with open(file, encoding="utf-8") as f:  # Windows defaults to the ANSI code page
             data = json.load(f)
     except (OSError, ValueError):
         return

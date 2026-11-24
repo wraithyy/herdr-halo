@@ -25,6 +25,15 @@ test("listeners are parsed, deduped per pid and port, sorted", () => {
   ]);
 });
 
+test("the Windows snapshot (PowerShell, IPv4 and IPv6 per socket) parses the same", () => {
+  const ps = "p900\ncnode\nn0.0.0.0:5173\np900\ncnode\nn:::5173\np4\ncSystem\nn0.0.0.0:445\n";
+  expect(parseListeners(ps)).toEqual([
+    { pid: 4, cmd: "System", port: 445 },
+    { pid: 900, cmd: "node", port: 5173 },
+  ]);
+  expect([...parseParents("900 850\n850 0\n")]).toEqual([[900, 850], [850, 0]]);
+});
+
 test("a server is owned by the space of the terminal up its parent chain", () => {
   const parents = parseParents("  900   850\n  850   800\n  800     1\n  950     1\n  707     1\n");
   const owners = new Map([[800, { terminal: "t5", space: "spA" }]]);

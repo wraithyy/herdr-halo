@@ -1,6 +1,7 @@
 # herdr-halo
 
-A sci-fi agent console layout for the [Herdr](https://herdr.dev) desktop app (macOS):
+A sci-fi agent console layout for the [Herdr](https://herdr.dev) desktop app (macOS; Windows,
+see [Windows](#windows)):
 spaces as cards with their Claude Code agents, an agent dock (brief, context split,
 activity, prompt cache), a dev dock (merge requests, pipeline, review queue, dev servers),
 HUD pane headers, right-click menus and quick dialogs. See [RECIPE.md](RECIPE.md) for the
@@ -110,6 +111,33 @@ agent dock opens when that agent has focus.
   terminal's shell. Ports 49152 and up are ignored. OTHER APPS lists dev ports answered by
   apps not started from Herdr.
 - **Escape hatch**: `ctrl-alt-shift-escape` resets to Herdr's default layout and keys.
+
+## Windows
+
+The mods pick the Windows programs themselves (`window().platform`): PowerShell
+(`Get-NetTCPConnection`, `Win32_Process`) for ports, `rundll32 url.dll` to open links,
+`Set-Clipboard`, `taskkill /F` to stop a server. The tab bar draws the window buttons. What
+differs in the install:
+
+- **Files**: copy instead of symlinking (symlinks need Developer Mode); repeat the copy after
+  `git pull`. In PowerShell:
+
+  ```powershell
+  $H = "$HOME\Development\herdr-halo"; $D = "$HOME\.config\herdr-app"
+  Copy-Item "$H\layouts\halo.json" "$D\layouts\"
+  Get-ChildItem "$H\mods" -Directory | ForEach-Object { Copy-Item $_.FullName "$D\mods\" -Recurse -Force }
+  ```
+
+- **Keys**: merge [keys.windows.json](keys.windows.json) instead: `ctrl-shift-t/j/r`. In this
+  layout `ctrl-shift-t` opens the new task dialog instead of Herdr's new tab (the `+` button
+  still makes one).
+- **Python**: `python3` is often only the Microsoft Store alias; use the launcher, `py -3`.
+  Claude Code runs hooks and the statusline through Git Bash, so the hook and statusline
+  commands above work as written with `python3 -I` replaced by `py -3 -I`. The reporter
+  finds `hc.exe` in `%LOCALAPPDATA%\Programs\herdr-core` when it isn't on `PATH`.
+- **Scripts** (`ctrl-shift-r`) run in a PowerShell that stays open after the script ends.
+- **Ports** are read every 10 s through one PowerShell call, which takes about 2 s.
+- **New space** also scans `~/source/repos` and takes typed drive paths (`C:\work\repo`).
 
 ## Privacy
 

@@ -103,6 +103,10 @@ blur on, own title bar with macOS traffic lights at 18,16.
   `focused`, `shared` / `setShared`, `openOverlay`, `run`, `exec`, `hc`, `notify`,
   `setAgentOrder`.
 - Programs run: `git`, `lsof`, `ps`, `glab`, `gh`, `hc`, `open`, `osascript` (clipboard), `kill`.
+  On Windows (`window().platform`), `mods/halo/os.js` swaps them for `powershell`
+  (`Get-NetTCPConnection`, `Win32_Process`, `Set-Clipboard`), `rundll32 url.dll` and
+  `taskkill /F`; `mods/halo-menu/os.js` is a copy (mods can't import across folders).
+  The tab bar draws minimize / maximize / close where `window().buttons`.
 
 ## Watch out
 

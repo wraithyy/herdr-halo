@@ -5,16 +5,25 @@
 
 import { View, div, svg } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
-import { exec, readTextFile, run, theme, props, closeOverlay, appHome, home, settings } from "herdr";
+import { exec, readTextFile, run, theme, props, closeOverlay, appHome, home, settings, window } from "herdr";
 import { merge, parseWaypoints, typedPath, score } from "./rank.js";
 
 const MONO = "JetBrainsMono Nerd Font Mono";
 const SHOWN = 12;
 const SCAN_DEPTH = "4";
 
-const CODE_DIRS = ["Development", "Projects", "projects", "code", "src", "dev", "repos", "work"];
+const CODE_DIRS = ["Development", "Projects", "projects", "code", "src", "dev", "repos", "work", "source/repos"];
+const isWindows = () => window()?.platform === "windows";
 
 async function repos(roots) {
+  if (isWindows()) {
+    // Same depth as find's -maxdepth; -Filter matches .git folders and worktrees' .git files.
+    const literal = roots.map((p) => `'${p.replace(/'/g, "''")}'`).join(",");
+    const r = await exec("powershell", ["-NoProfile", "-NonInteractive", "-Command",
+      `Get-ChildItem -LiteralPath ${literal} -Force -Recurse -Depth ${Number(SCAN_DEPTH) - 1} -Filter .git -ErrorAction SilentlyContinue | ForEach-Object { Split-Path -Parent $_.FullName }`],
+    { timeout: 10000 }).catch(() => null);
+    return [...new Set((r?.stdout ?? "").replace(/\r/g, "").split("\n").filter(Boolean).map((p) => p.replace(/\\/g, "/")))].sort();
+  }
   const ls = await exec("ls", ["-d", ...roots], { timeout: 3000 }).catch(() => null);
   const existing = (ls?.stdout ?? "").split("\n").filter(Boolean);
   if (!existing.length) return [];
@@ -24,7 +33,8 @@ async function repos(roots) {
 
 export default class HaloSpace extends View {
   init(_props, cx) {
-    this.home = home();
+    // Forward slashes on Windows too, so repo paths and "~" labels compare as on macOS.
+    this.home = home().replace(/\\/g, "/");
     this.items = [];
     this.at = 0;
     this.status = "scanning…";
