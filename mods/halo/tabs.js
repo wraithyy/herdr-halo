@@ -3,11 +3,12 @@
 
 import { div, svg, image } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { spaces, panes, agents, run, shared, layout, openOverlay } from "herdr";
+import { spaces, panes, agents, run, shared, layout, openOverlay, window, settings } from "herdr";
 import { MONO, HUE, clean, prefs, setPrefs } from "./lib.js";
 import { collieChip } from "./collie.js";
 import { visibleGroups } from "./dock.js";
 import { dot } from "./tree.js";
+import { lightsPadding } from "./parse.js";
 
 const stop = (_e, cx) => cx.stop_propagation();
 
@@ -108,12 +109,14 @@ export function renderTabs(view, t) {
   const isAgent = (tab) => all.some((x) => x.tab === tab.id && x.program?.agent);
   const tabs = (space?.tabs ?? []).filter((tab) => !tab.settled && (p.agents || !isAgent(tab) || tab.active));
   const root = shared("layout") === "halo" ? layout() : null;
-  const sidebarHidden = Boolean(findNode(root, "sidebar")?.hidden);
+  const sidebar = findNode(root, "sidebar");
+  const sidebarHidden = Boolean(sidebar?.hidden);
+  const padLeft = lightsPadding({ w: window(), root, sidebar, zoom: settings()?.zoom });
   const sideOn = Boolean(root) && !findNode(root, "side")?.hidden;
   const sideChild = findNode(root, "side-body")?.active;
 
   const waiting = agents().filter((a) => a.status === "blocked").length;
-  return h_flex().size_full().px(10).gap(6).items_center()
+  return h_flex().size_full().px(10).pl(padLeft).gap(6).items_center()
     .when(waiting > 0, (el) => el.child(div().id("waiting-chip").h(22).px(8).rounded(5).flex().items_center().cursor_pointer()
       .bg(`${t.blocked}26`).border(1).border_color(t.blocked).font_family(MONO).text_size(10).text_color(t.blocked)
       .tooltip("Reply to waiting agents (cmd-shift-j)")

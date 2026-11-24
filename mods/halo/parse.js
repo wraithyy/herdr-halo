@@ -116,3 +116,11 @@ export function groupByProject(list) {
   }
   return [...groups.values()];
 }
+
+// Left padding of the tab bar: on macOS with an own title bar, the traffic lights sit over it
+// when the sidebar is hidden (same rule as the shipped tabs mod, less the layout's padding).
+export function lightsPadding({ w, root, sidebar, zoom }) {
+  if (w?.platform !== "macos" || w.titlebar !== "none" || w.fullscreen || !root?.traffic_lights) return 10;
+  const covered = (root.traffic_lights[0] + 64) / (zoom || 1) - (root.padding ?? 0);
+  return Math.max(10, covered - (sidebar?.hidden ? 0 : sidebar?.size?.px ?? 0));
+}

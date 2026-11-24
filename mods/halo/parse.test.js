@@ -1,6 +1,6 @@
 // bun test mods/halo/parse.test.js
 import { expect, test } from "bun:test";
-import { parseChanges } from "./parse.js";
+import { parseChanges, lightsPadding } from "./parse.js";
 
 test("changes merge numstat with untracked and deleted files, biggest first", () => {
   const numstat = "3\t1\tsrc/a.ts\n40\t0\tsrc/big.ts\n-\t-\tlogo.png\n0\t12\told.ts\n";
@@ -79,4 +79,13 @@ test("MRs group by project, first-seen order", () => {
     ["monorepo", "acme/web", ["!3", "!9"]],
     ["skynet", "acme/tools", ["!4"]],
   ]);
+});
+
+test("tab bar clears the macOS window buttons only when the sidebar is hidden", () => {
+  const w = { platform: "macos", titlebar: "none", fullscreen: false };
+  const root = { traffic_lights: [18, 16], padding: 8 };
+  expect(lightsPadding({ w, root, sidebar: { hidden: true, size: { px: 280 } }, zoom: 1 })).toBe(74);
+  expect(lightsPadding({ w, root, sidebar: { hidden: false, size: { px: 280 } }, zoom: 1 })).toBe(10);
+  expect(lightsPadding({ w: { ...w, fullscreen: true }, root, sidebar: { hidden: true }, zoom: 1 })).toBe(10);
+  expect(lightsPadding({ w: { ...w, platform: "linux" }, root, sidebar: { hidden: true }, zoom: 1 })).toBe(10);
 });
